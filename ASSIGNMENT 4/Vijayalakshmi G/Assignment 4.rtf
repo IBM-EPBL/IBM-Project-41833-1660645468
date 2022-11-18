@@ -1,0 +1,408 @@
+{\rtf1\ansi\ansicpg1252\deff0\nouicompat\deflang1033{\fonttbl{\f0\fnil\fcharset0 Calibri;}}
+{\*\generator Riched20 10.0.19041}\viewkind4\uc1 
+\pard\sa200\sl276\slmult1\f0\fs22\lang9\par
+import numpy as np\par
+import pandas as pd\par
+import os\par
+import seaborn as sns\par
+import matplotlib.pyplot as plt\par
+%matplotlib inline\par
+for dirname, _, filenames in os.walk('/kaggle/input'):\par
+    for filename in filenames:\par
+        print(os.path.join(dirname, filename))\par
+/kaggle/input/sms-spam-collection-dataset/spam.csv\par
+**2. Reading the .csv dataset**\par
+\par
+data=pd.read_csv("../input/sms-spam-collection-dataset/spam.csv",encoding="latin")\par
+data.head()\par
+v1\tab v2\tab Unnamed: 2\tab Unnamed: 3\tab Unnamed: 4\par
+0\tab ham\tab Go until jurong point, crazy.. Available only ...\tab NaN\tab NaN\tab NaN\par
+1\tab ham\tab Ok lar... Joking wif u oni...\tab NaN\tab NaN\tab NaN\par
+2\tab spam\tab Free entry in 2 a wkly comp to win FA Cup fina...\tab NaN\tab NaN\tab NaN\par
+3\tab ham\tab U dun say so early hor... U c already then say...\tab NaN\tab NaN\tab NaN\par
+4\tab ham\tab Nah I don't think he goes to usf, he lives aro...\tab NaN\tab NaN\tab NaN\par
+\par
+\par
+data.columns\par
+Index(['v1', 'v2', 'Unnamed: 2', 'Unnamed: 3', 'Unnamed: 4'], dtype='object')\par
+**3. Drop the unnamed Columns**\par
+\par
+data=data.drop(columns=["Unnamed: 2","Unnamed: 3","Unnamed: 4"])\par
+**4. Renaming Column names sensible**\par
+\par
+data=data.rename(\par
+\{\par
+    "v1":"Category",\par
+    "v2":"Message"\par
+\},\par
+    axis=1\par
+)\par
+data.head()\par
+Category\tab Message\par
+0\tab ham\tab Go until jurong point, crazy.. Available only ...\par
+1\tab ham\tab Ok lar... Joking wif u oni...\par
+2\tab spam\tab Free entry in 2 a wkly comp to win FA Cup fina...\par
+3\tab ham\tab U dun say so early hor... U c already then say...\par
+4\tab ham\tab Nah I don't think he goes to usf, he lives aro...\par
+5. Check for null values in dataset**\par
+\par
+data.isnull().sum()\par
+Category    0\par
+Message     0\par
+dtype: int64\par
+data.info()\par
+RangeIndex: 5572 entries, 0 to 5571\par
+Data columns (total 2 columns):\par
+ #   Column    Non-Null Count  Dtype \par
+---  ------    --------------  ----- \par
+ 0   Category  5572 non-null   object\par
+ 1   Message   5572 non-null   object\par
+dtypes: object(2)\par
+memory usage: 87.2+ KB\par
+**6.Creating a new Field to store the Message Lengths**\par
+\par
+data["Message Length"]=data["Message"].apply(len)\par
+**7. Histogram Inference of Message Lengths of Spam and Non-spam messages**\par
+\par
+fig=plt.figure(figsize=(12,8))\par
+sns.histplot(\par
+    x=data["Message Length"],\par
+    hue=data["Category"]\par
+)\par
+plt.title("ham & spam messege length comparision")\par
+plt.show()\par
+ham_desc=data[data["Category"]=="ham"]["Message Length"].describe()\par
+spam_desc=data[data["Category"]=="spam"]["Message Length"].describe()\par
+\par
+print("Ham Messege Length Description:\\n",ham_desc)\par
+print("************************************")\par
+print("Spam Message Length Description:\\n",spam_desc)\par
+Ham Messege Length Description:\par
+ count    4825.000000\par
+mean       71.023627\par
+std        58.016023\par
+min         2.000000\par
+25%        33.000000\par
+50%        52.000000\par
+75%        92.000000\par
+max       910.000000\par
+Name: Message Length, dtype: float64\par
+************************************\par
+Spam Message Length Description:\par
+ count    747.000000\par
+mean     138.866131\par
+std       29.183082\par
+min       13.000000\par
+25%      132.500000\par
+50%      149.000000\par
+75%      157.000000\par
+max      224.000000\par
+Name: Message Length, dtype: float64\par
+data.describe(include="all")\par
+Category\tab Message\tab Message Length\par
+count\tab 5572\tab 5572\tab 5572.000000\par
+unique\tab 2\tab 5169\tab NaN\par
+top\tab ham\tab Sorry, I'll call later\tab NaN\par
+freq\tab 4825\tab 30\tab NaN\par
+mean\tab NaN\tab NaN\tab 80.118808\par
+std\tab NaN\tab NaN\tab 59.690841\par
+min\tab NaN\tab NaN\tab 2.000000\par
+25%\tab NaN\tab NaN\tab 36.000000\par
+50%\tab NaN\tab NaN\tab 61.000000\par
+75%\tab NaN\tab NaN\tab 121.000000\par
+max\tab NaN\tab NaN\tab 910.000000\par
+**8. Visualizing count of messages of Spam and Non Spam**\par
+\par
+data["Category"].value_counts()\par
+ham     4825\par
+Name: Category, dtype: int64\par
+sns.countplot(\par
+    data=data,\par
+    x="Category"\par
+)\par
+plt.title("ham vs spam")\par
+plt.show()\par
+\par
+ham_count=data["Category"].value_counts()[0]\par
+spam_count=data["Category"].value_counts()[1]\par
+\par
+total_count=data.shape[0]\par
+\par
+print("Ham contains:\{:.2f\}% of total data.".format(ham_count/total_count*100))\par
+print("Spam contains:\{:.2f\}% of total data.".format(spam_count/total_count*100))\par
+Ham contains:86.59% of total data.\par
+Spam contains:13.41% of total data.\par
+**9. Undersampling to Genralize Model and Balance Spam and Ham quantities in dataset**\par
+\par
+minority_len=len(data[data["Category"]=="spam"])\par
+majority_len=len(data[data["Category"]=="ham"])\par
+minority_indices=data[data["Category"]=="spam"].index\par
+majority_indices=data[data["Category"]=="ham"].index\par
+random_majority_indices=np.random.choice(\par
+    majority_indices,\par
+    size=minority_len,\par
+    replace=False\par
+)\par
+\par
+undersampled_indices=np.concatenate([minority_indices,random_majority_indices])\par
+df=data.loc[undersampled_indices]\par
+df=df.sample(frac=1)\par
+df=df.reset_index()\par
+df=df.drop(\par
+    columns=["index"],\par
+)\par
+df.shape\par
+(1494, 3)\par
+df["Category"].value_counts()\par
+ham     747\par
+spam    747\par
+Name: Category, dtype: int64\par
+sns.countplot(\par
+    data=df,\par
+    x="Category"\par
+)\par
+plt.title("ham vs spam")\par
+plt.show()\par
+Display the head of new df\par
+\par
+df.head()\par
+Category\tab Message\tab Message Length\par
+0\tab spam\tab FREE>Ringtone! Reply REAL or POLY eg REAL1 1. ...\tab 158\par
+1\tab spam\tab URGENT! We are trying to contact U Todays draw...\tab 157\par
+2\tab ham\tab Ok ill send you with in <DECIMAL> ok.\tab 45\par
+3\tab ham\tab Oh just getting even with u.... u?\tab 34\par
+4\tab spam\tab A link to your picture has been sent. You can ...\tab 96\par
+**10. Binary Encoding of Spam and Ham Categories**\par
+\par
+df["Label"]=df["Category"].map(\par
+    \{\par
+        "ham":0,\par
+        "spam":1\par
+    \}\par
+)\par
+df.head()\par
+Category\tab Message\tab Message Length\tab Label\par
+0\tab spam\tab FREE>Ringtone! Reply REAL or POLY eg REAL1 1. ...\tab 158\tab 1\par
+1\tab spam\tab URGENT! We are trying to contact U Todays draw...\tab 157\tab 1\par
+2\tab ham\tab Ok ill send you with in <DECIMAL> ok.\tab 45\tab 0\par
+3\tab ham\tab Oh just getting even with u.... u?\tab 34\tab 0\par
+4\tab spam\tab A link to your picture has been sent. You can ...\tab 96\tab 1\par
+*11. Import Necessary Libraries to perform Word Tokenization**\par
+\par
+import re\par
+import nltk\par
+from nltk.corpus import stopwords\par
+from nltk.stem import PorterStemmer\par
+\par
+stemmer=PorterStemmer()\par
+corpus=[]\par
+for message in df["Message"]:\par
+    message=re.sub("[^a-zA-Z]"," ",message)\par
+    message=message.lower()\par
+    message=message.split()\par
+    message=[stemmer.stem(words)\par
+            for words in message\par
+             if words not in set(stopwords.words("english"))\par
+            ]\par
+    message=" ".join(message)\par
+    corpus.append(message)\par
+**12. Perform One Hot on Corpus**\par
+\par
+from tensorflow.keras.preprocessing.text import one_hot\par
+vocab_size=10000\par
+\par
+oneHot_doc=[one_hot(words,n=vocab_size)\par
+           for words in corpus\par
+           ]\par
+df["Message Length"].describe()\par
+count    1494.000000\par
+mean      104.491299\par
+std        60.362332\par
+min         2.000000\par
+25%        49.000000\par
+50%       114.000000\par
+75%       153.000000\par
+max       910.000000\par
+Name: Message Length, dtype: float64\par
+fig=plt.figure(figsize=(12,8))\par
+sns.kdeplot(\par
+    x=df["Message Length"],\par
+    hue=df["Category"]\par
+)\par
+plt.title("ham & spam messege length comparision")\par
+plt.show()\par
+\par
+from tensorflow.keras.preprocessing.sequence import pad_sequences\par
+sentence_len=200\par
+embedded_doc=pad_sequences(\par
+    oneHot_doc,\par
+    maxlen=sentence_len,\par
+    padding="pre"\par
+)\par
+extract_features=pd.DataFrame(\par
+    data=embedded_doc\par
+)\par
+target=df["Label"]\par
+df_final=pd.concat([extract_features,target],axis=1)\par
+df_final.head()\par
+0\tab 1\tab 2\tab 3\tab 4\tab 5\tab 6\tab 7\tab 8\tab 9\tab ...\tab 191\tab 192\tab 193\tab 194\tab 195\tab 196\tab 197\tab 198\tab 199\tab Label\par
+0\tab 0\tab 0\tab 0\tab 0\tab 0\tab 0\tab 0\tab 0\tab 0\tab 0\tab ...\tab 8116\tab 8983\tab 7883\tab 1884\tab 5957\tab 5877\tab 266\tab 1527\tab 5846\tab 1\par
+1\tab 0\tab 0\tab 0\tab 0\tab 0\tab 0\tab 0\tab 0\tab 0\tab 0\tab ...\tab 9989\tab 7682\tab 5710\tab 5519\tab 2447\tab 1240\tab 3994\tab 6950\tab 3655\tab 1\par
+2\tab 0\tab 0\tab 0\tab 0\tab 0\tab 0\tab 0\tab 0\tab 0\tab 0\tab ...\tab 0\tab 0\tab 3310\tab 6099\tab 7761\tab 9276\tab 4679\tab 2205\tab 3310\tab 0\par
+3\tab 0\tab 0\tab 0\tab 0\tab 0\tab 0\tab 0\tab 0\tab 0\tab 0\tab ...\tab 0\tab 0\tab 0\tab 0\tab 8194\tab 7945\tab 3841\tab 266\tab 266\tab 0\par
+4\tab 0\tab 0\tab 0\tab 0\tab 0\tab 0\tab 0\tab 0\tab 0\tab 0\tab ...\tab 5677\tab 7440\tab 8481\tab 9975\tab 2366\tab 4841\tab 4320\tab 4320\tab 4672\tab 1\par
+5 rows \'d7 201 columns\par
+13. Splitting Dependent and Independent Variables\par
+\par
+X=df_final.drop("Label",axis=1)\par
+y=df_final["Label"]\par
+**14. Train, test and Validation Split**\par
+\par
+from sklearn.model_selection import train_test_split\par
+X_trainval,X_test,y_trainval,y_test=train_test_split(\par
+    X,\par
+    y,\par
+    random_state=42,\par
+    test_size=0.15\par
+)\par
+X_train,X_val,y_train,y_val=train_test_split(\par
+    X_trainval,\par
+    y_trainval,\par
+    random_state=42,\par
+    test_size=0.15\par
+)\par
+**15.Building a Sequential Model**\par
+\par
+from tensorflow.keras.layers import LSTM\par
+from tensorflow.keras.layers import Dense\par
+from tensorflow.keras.layers import Embedding\par
+from tensorflow.keras.models import Sequential\par
+model=Sequential()\par
+feature_num=100\par
+model.add(\par
+    Embedding(\par
+        input_dim=vocab_size,\par
+        output_dim=feature_num,\par
+        input_length=sentence_len\par
+    )\par
+)\par
+model.add(\par
+    LSTM(\par
+    units=128\par
+    )\par
+)\par
+\par
+model.add(\par
+    Dense(\par
+        units=1,\par
+        activation="sigmoid"\par
+    )\par
+)\par
+model.summary()\par
+Model: "sequential"\par
+_________________________________________________________________\par
+Layer (type)                 Output Shape              Param #   \par
+=================================================================\par
+embedding (Embedding)        (None, 200, 100)          1000000   \par
+_________________________________________________________________\par
+lstm (LSTM)                  (None, 128)               117248    \par
+_________________________________________________________________\par
+dense (Dense)                (None, 1)                 129       \par
+=================================================================\par
+Total params: 1,117,377\par
+Trainable params: 1,117,377\par
+Non-trainable params: 0\par
+_________________________________________________________________\par
+from tensorflow.keras.optimizers import Adam\par
+model.compile(\par
+    optimizer=Adam(\par
+    learning_rate=0.001\par
+    ),\par
+    loss="binary_crossentropy",\par
+    metrics=["accuracy"]\par
+)\par
+**16. Model Fitting**\par
+\par
+history=model.fit(\par
+    X_train,\par
+    y_train,\par
+    validation_data=(\par
+        X_val,\par
+        y_val\par
+    ),\par
+    epochs=10\par
+)\par
+Epoch 1/10\par
+34/34 [==============================] - 24s 633ms/step - loss: 0.6324 - accuracy: 0.6331 - val_loss: 0.4218 - val_accuracy: 0.8377\par
+Epoch 2/10\par
+34/34 [==============================] - 21s 608ms/step - loss: 0.3045 - accuracy: 0.9257 - val_loss: 0.1631 - val_accuracy: 0.9529\par
+Epoch 3/10\par
+34/34 [==============================] - 21s 609ms/step - loss: 0.1046 - accuracy: 0.9689 - val_loss: 0.1231 - val_accuracy: 0.9581\par
+Epoch 7/10\par
+34/34 [==============================] - 21s 614ms/step - loss: 0.0121 - accuracy: 0.9968 - val_loss: 0.1314 - val_accuracy: 0.9634\par
+Epoch 8/10\par
+34/34 [==============================] - 21s 619ms/step - loss: 0.0222 - accuracy: 0.9944 - val_loss: 0.1479 - val_accuracy: 0.9634\par
+Epoch 9/10\par
+34/34 [==============================] - 21s 614ms/step - loss: 0.0077 - accuracy: 0.9989 - val_loss: 0.1624 - val_accuracy: 0.9634\par
+Epoch 10/10\par
+34/34 [==============================] - 21s 614ms/step - loss: 0.0077 - accuracy: 0.9976 - val_loss: 0.1751 - val_accuracy: 0.9634\par
+metrics = pd.DataFrame(history.history)\par
+metrics.rename(columns = \{'loss': 'Training_Loss', 'accuracy': 'Training_Accuracy', 'val_loss': 'Validation_Loss', 'val_accuracy': 'Validation_Accuracy'\}, inplace = True)\par
+def plot_graph_acc(var1, var2, string):\par
+    metrics[[var1, var2]].plot()\par
+    plt.title('Training and Validation ' + string)\par
+    plt.xlabel ('Number of epochs')\par
+    plt.ylabel(string)\par
+    plt.legend([var1, var2])\par
+plot_graph_acc('Training_Accuracy', 'Validation_Accuracy', 'accuracy')\par
+y_pred=model.predict(X_test)\par
+y_pred=(y_pred>0.5)\par
+model.save('Spam_SMS_classifier.h5')\par
+17. Evaluating the Model\par
+\par
+from sklearn.metrics import accuracy_score,confusion_matrix\par
+score=accuracy_score(y_test,y_pred)\par
+print("Test Score:\{:.2f\}%".format(score*100))\par
+Test Score:96.89%\par
+cm=confusion_matrix(y_test,y_pred)\par
+fig=plt.figure(figsize=(12,8))\par
+sns.heatmap(\par
+    cm,\par
+    annot=True,\par
+)\par
+plt.title("Confusion Matrix")\par
+cm\par
+array([[104,   0],\par
+       [  7, 114]])\par
+ Function to Test the Model on a Random message\par
+\par
+def classify_message(model,message):\par
+    for sentences in message:\par
+        sentences=nltk.sent_tokenize(message)\par
+        for sentence in sentences:\par
+            words=re.sub("[^a-zA-Z]"," ",sentence)\par
+            if words not in set(stopwords.words('english')):\par
+                word=nltk.word_tokenize(words)\par
+                word=" ".join(word)        \par
+    oneHot=[one_hot(word,n=vocab_size)]\par
+    text=pad_sequences(oneHot,maxlen=sentence_len,padding="pre")\par
+    predict=model.predict(text)\par
+    if predict>0.5:\par
+        print("It is a spam")\par
+        print("predict score: ", predict[0][0])\par
+    else:\par
+        print("It is not a spam")\par
+        print("predict score: ", predict[0][0])\par
+        \par
+message1="I am having my Tests right now. Will call back as soon as possible! Till then be safe wherever you are. Be Alert of any hazard"\par
+message2="Your Rs.8850 welcome bonus is ready to be credited. Download Junglee Rummy now. Claim Bonus on your first deposit prize pool"\par
+classify_message(model,message1)\par
+It is not a spam\par
+predict score:  0.037389785\par
+It is not a spam\par
+predict score:  0.037389785\par
+classify_message(model,message2)\par
+It is a spam\par
+predict score:  0.9936712\par
+}
+ 
